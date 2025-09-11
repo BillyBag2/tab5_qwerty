@@ -11,6 +11,10 @@ static uint8_t s_rot_offset = 0;  // 0..3
 static int8_t s_last_rotation = -1;    // last applied logical rotation (0..3)
 static int8_t s_last_candidate = -1;   // last candidate orientation
 static uint32_t s_change_ms = 0;       // last time candidate changed
+// Dead-zone to avoid rotation when device is nearly level (flat on table)
+// Use horizontal acceleration threshold ~= sin(10 deg) ≈ 0.1736g
+static constexpr float kLevelDeadzoneSin = 0.17365f;
+static constexpr float kLevelDeadzoneSin2 = kLevelDeadzoneSin * kLevelDeadzoneSin; // compare squared magnitude
 
 // Determine a 0..3 logical rotation from accelerometer axes.
 // Base mapping (may vary per device, offset handles differences):
@@ -50,6 +54,13 @@ void orientation_update()
   float ax = 0, ay = 0, az = 0;
   if (!M5.Imu.getAccel(&ax, &ay, &az)) {
     return; // IMU not ready / unavailable
+  }
+
+  // Dead-zone: if device is nearly level (horizontal component small), skip updates.
+  // Faster than computing angles: compare squared horizontal magnitude to sin^2(theta)
+  float horiz2 = ax * ax + ay * ay;
+  if (horiz2 < kLevelDeadzoneSin2) {
+    return; // keep current orientation when nearly flat
   }
 
   int8_t cand = compute_rotation_from_accel(ax, ay);
