@@ -4,6 +4,7 @@
 
 #include "orientation.h"
 #include <M5Unified.h>
+#include <math.h>
 
 static RedrawCallback s_redraw = nullptr;
 static uint8_t s_rot_offset = 0;  // 0..3
@@ -47,7 +48,9 @@ void orientation_update()
 #endif
 
   float ax = 0, ay = 0, az = 0;
-  M5.Imu.getAccel(&ax, &ay, &az);
+  if (!M5.Imu.getAccel(&ax, &ay, &az)) {
+    return; // IMU not ready / unavailable
+  }
 
   int8_t cand = compute_rotation_from_accel(ax, ay);
 
@@ -65,4 +68,3 @@ void orientation_update()
     if (s_redraw) { s_redraw(); }
   }
 }
-
