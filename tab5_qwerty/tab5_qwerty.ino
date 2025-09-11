@@ -3,9 +3,10 @@
 // - Top toolbar with centered title "TAB5 Qwerty"
 
 #include <M5Unified.h>
+#include "orientation.h"
 
 static constexpr const char* TITLE = "TAB5 Qwerty";
-static constexpr uint16_t TOOLBAR_H = 24;  // toolbar height in pixels
+static constexpr uint16_t TOOLBAR_H = 48;  // toolbar height in pixels (about twice)
 
 static void drawToolbarWithTitle(const char* title)
 {
@@ -16,7 +17,7 @@ static void drawToolbarWithTitle(const char* title)
 
     // Configure text and measure for centering
     display.setTextWrap(false);
-    display.setTextSize(2); // adjust to taste
+    display.setTextSize(4); // larger text ~2x
     display.setTextColor(0xFFFFFF, 0x000000);  // white on black
 
     int32_t w = display.textWidth(title);
@@ -26,6 +27,14 @@ static void drawToolbarWithTitle(const char* title)
 
     display.setCursor(tx, ty);
     display.print(title);
+}
+
+// Redraw the entire UI for the current rotation
+void drawUI()
+{
+    auto& display = M5.Display;
+    display.fillScreen(0xFFFFFF); // white background
+    drawToolbarWithTitle(TITLE);
 }
 
 void setup()
@@ -38,13 +47,14 @@ void setup()
     auto& display = M5.Display;
     display.setRotation(1);  // adjust orientation to your device
 
-    // Clear to white
-    display.fillScreen(0xFFFFFF);
+    // Initial draw
+    drawUI();
 
-    // Draw toolbar and centered title
-    drawToolbarWithTitle(TITLE);
+    // Start orientation manager; adjust rotation offset if axes differ
+    orientation_begin(drawUI /* callback */, 0 /* rotation_offset */);
 }
 
 void loop() {
     M5.update();
+    orientation_update();
 }
