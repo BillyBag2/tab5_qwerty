@@ -30,33 +30,47 @@ static void drawToolbarWithTitle(const char* title)
     display.print(title);
 }
 
+// Draw only the text box (to reduce flicker during typing)
+static void drawTextBoxOnly()
+{
+    auto& display = M5.Display;
+
+    int16_t kb_x, kb_y, kb_w, kb_h;
+    keyboard_getRect(&kb_x, &kb_y, &kb_w, &kb_h);
+    const int16_t margin = 6;
+
+    display.setTextSize(4); // ~2x bigger textbox text
+    int16_t tb_h = display.fontHeight() + 12; // padding
+    int16_t tb_x = margin;
+    int16_t tb_y = kb_y - tb_h - margin;
+    int16_t tb_w = display.width() - margin * 2;
+
+    display.startWrite();
+    // Clear region (including border) before redraw to prevent artifacts
+    display.fillRect(tb_x - 2, tb_y - 2, tb_w + 4, tb_h + 4, 0xFFFFFF);
+    display.fillRoundRect(tb_x, tb_y, tb_w, tb_h, 6, 0xFFFFFF);
+    display.drawRoundRect(tb_x, tb_y, tb_w, tb_h, 6, 0x000000);
+
+    extern String g_inputText;
+    display.setTextColor(0x000000, 0xFFFFFF);
+    display.setCursor(tb_x + 8, tb_y + (tb_h - display.fontHeight()) / 2);
+    display.print(g_inputText);
+    display.endWrite();
+    display.waitDisplay();
+}
+
 // Redraw the entire UI for the current rotation
 void drawUI()
 {
     auto& display = M5.Display;
+    display.startWrite();
     display.fillScreen(0xFFFFFF); // white background
     drawToolbarWithTitle(TITLE);
+    display.endWrite();
+    display.waitDisplay();
 
-    // Draw text box above keyboard (full width)
-    int16_t kb_x, kb_y, kb_w, kb_h;
-    keyboard_getRect(&kb_x, &kb_y, &kb_w, &kb_h);
-    const int16_t margin = 6;
-    const int16_t tb_h = 40; // text box height
-    int16_t tb_x = margin;
-    int16_t tb_y = kb_y - tb_h - margin;
-    int16_t tb_w = display.width() - margin * 2;
-    // Background and border
-    display.fillRoundRect(tb_x, tb_y, tb_w, tb_h, 6, 0xFFFFFF);
-    display.drawRoundRect(tb_x, tb_y, tb_w, tb_h, 6, 0x000000);
-
-    // Draw current input text
-    extern String g_inputText;
-    display.setTextSize(2);
-    display.setTextColor(0x000000, 0xFFFFFF);
-    display.setCursor(tb_x + 8, tb_y + (tb_h - display.fontHeight()) / 2);
-    display.print(g_inputText);
-
-    // Draw keyboard last (so it sits on top visually)
+    // Draw text box and keyboard after background (batched per region)
+    drawTextBoxOnly();
     keyboard_draw();
 }
 
@@ -76,8 +90,8 @@ void setup()
         [](char c){
             extern String g_inputText;
             g_inputText += c;
-            // Redraw only the text box region
-            drawUI();
+            // Redraw only the text box region to reduce flicker
+            drawTextBoxOnly();
         },
         // onBackspace
         [](){
@@ -85,8 +99,14 @@ void setup()
             if (g_inputText.length() > 0) {
                 g_inputText.remove(g_inputText.length() - 1);
             }
-            drawUI();
-        }
+            drawTextBoxOnly();
+        },
+        // onDone
+        [](){
+            // Placeholder: could trigger submit or hide keyboard
+        },
+        // doneLabel
+        "Done"
     );
 
     // Initial draw
