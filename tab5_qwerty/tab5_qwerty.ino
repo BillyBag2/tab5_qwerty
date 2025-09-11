@@ -52,9 +52,17 @@ static void drawTextBoxOnly()
     display.drawRoundRect(tb_x, tb_y, tb_w, tb_h, 6, 0x000000);
 
     extern String g_inputText;
+    extern bool g_maskInput;
+    String toDraw;
+    if (g_maskInput) {
+        toDraw.reserve(g_inputText.length());
+        for (size_t i = 0; i < g_inputText.length(); ++i) toDraw += '*';
+    } else {
+        toDraw = g_inputText;
+    }
     display.setTextColor(0x000000, 0xFFFFFF);
     display.setCursor(tb_x + 8, tb_y + (tb_h - display.fontHeight()) / 2);
-    display.print(g_inputText);
+    display.print(toDraw);
     display.endWrite();
     display.waitDisplay();
 }

@@ -22,3 +22,7 @@ void keyboard_getRect(int16_t* x, int16_t* y, int16_t* w, int16_t* h);
 
 // Shared input buffer (rendered by the host UI)
 extern String g_inputText;
+
+// Optional: mask input for password entry (default false)
+void keyboard_setMask(bool masked);
+extern bool g_maskInput;
